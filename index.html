@@ -51,7 +51,7 @@ tbody tr.sel td{background:var(--soft)}
 .chip.ok{color:var(--ok);background:var(--ok-bg)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted);margin:0 0 8px}
 .sw{display:inline-block;width:26px;height:10px;border-radius:3px;vertical-align:middle;margin-right:4px}
-.bump{width:100%;height:auto;display:block}
+.bump{width:100%;min-width:640px;height:auto;display:block}   /* 手机上保持可读，左右滑动 */
 .tip{position:absolute;pointer-events:none;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px 8px;font-size:12.5px;box-shadow:0 2px 8px #0003;display:none;z-index:5;white-space:nowrap}
 .picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
 .grp{border:1px solid var(--rule);border-radius:8px;padding:8px 12px;min-width:0}
@@ -97,7 +97,7 @@ footer{margin-top:36px;font-size:12.5px;color:var(--muted);border-top:1px solid 
 <section class="panel" style="position:relative">
   <h2>过去 26 周的排名走势</h2>
   <p class="sub">越靠上排名越前。彩线是选中的那只，灰线是其他行业。这是按同一算法、用历史价格倒推的排名，不是当时发出的报告。</p>
-  <svg class="bump" id="bump" viewBox="0 0 720 320" role="img" aria-label="各行业 ETF 过去 26 周排名走势"></svg>
+  <div class="tscroll"><svg class="bump" id="bump" viewBox="0 0 720 320" role="img" aria-label="各行业 ETF 过去 26 周排名走势"></svg></div>
   <div class="tip" id="tip"></div>
 </section>
 
@@ -148,7 +148,7 @@ footer{margin-top:36px;font-size:12.5px;color:var(--muted);border-top:1px solid 
     const stale = days > 8;
     el.className = 'strip' + (stale ? ' stale' : '');
     el.innerHTML = (stale ? `<span><b>⚠️ 数据已经 ${Math.floor(days)} 天没更新，可能停更了</b></span>` : '') +
-      `<span>数据截至 <b>${esc(D.asof)}</b></span><span>更新于 <b>${upd.toLocaleString('zh-CN',{hour12:false})}</b></span>` +
+      `<span>数据截至 <b>${esc(D.asof)}</b></span><span>更新于 <b>${esc(D.updated_at.slice(0,16).replace('T',' '))}（日本时间）</b></span>` +
       `<span>候选池 <b>${D.meta.universe}</b> 只，满足全部条件 <b>${D.meta.eligible}</b> 只</span>`;
     document.getElementById('disc').textContent = '⚠️ ' + D.disclaimer;
   }
