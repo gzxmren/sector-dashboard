@@ -197,7 +197,7 @@ footer{margin-top:36px;font-size:12.5px;color:var(--muted);border-top:1px solid 
         const t = el.dataset.t, r = D.etfs.find(c=>c.t===t), box = svg.getBoundingClientRect();
         const i = Math.max(0, Math.min(n-1, Math.round(((e.clientX-box.left)/box.width*W - L)/(W-L-R)*(n-1))));
         tip.style.display = 'block'; tip.textContent = `${t} ${r?r.name:''}｜${weeks[i]} 第 ${D.history[weeks[i]][t]} 名`;
-        const pr = svg.parentElement.getBoundingClientRect();
+        const pr = svg.closest('.panel').getBoundingClientRect();
         tip.style.left = (e.clientX-pr.left+12)+'px'; tip.style.top = (e.clientY-pr.top+12)+'px';
       });
       el.addEventListener('mouseleave', ()=>{ tip.style.display = 'none'; });
