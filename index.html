@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>美股行业强弱工作台</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 布局：单栏工作台——状态条在顶，强弱榜是主角，走势图与强股在下；默认浅色（设计页 W4），可切深色 */
+:root{
+  --bg:#F5F6F8; --paper:#FFFFFF; --ink:#18212C; --muted:#5E6B7A; --rule:#DDE2E8; --soft:#EEF1F5;
+  --accent:#2F5D8C; --line-mute:#c9cdd3;
+  --up:#00753a; --down:#ff7a6b; --neutral:#f0efec;          /* 绿涨红跌，色弱检查通过（深浅拉开） */
+  --warn:#A6620B; --warn-bg:#FBF0E1; --ok:#1F7A55; --ok-bg:#E6F4EE;
+  --display:"Noto Serif SC","Songti SC",Georgia,serif;
+  --body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#12171E; --paper:#1A212B; --ink:#E6EBF1; --muted:#9AA7B6; --rule:#2C3644; --soft:#222B37;
+  --accent:#8FB6E0; --line-mute:#3a4452;
+  --up:#33a861; --down:#b9443d; --neutral:#383835;
+  --warn:#E8B060; --warn-bg:#352612; --ok:#6FCB9F; --ok-bg:#183126;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+h1{font-family:var(--display);font-size:clamp(24px,4vw,32px);line-height:1.3;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:19px;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+.btn{font:inherit;font-size:13px;padding:5px 12px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.btn:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.strip{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:var(--muted);padding:8px 12px;background:var(--paper);border:1px solid var(--rule);border-radius:8px;margin:14px 0}
+.strip b{color:var(--ink);font-weight:500}
+.strip.stale{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.disc{font-size:13px;color:var(--muted);margin:0 0 6px}
+.panel{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;margin:14px 0;min-width:0}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--rule);vertical-align:middle;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12.5px}
+td.heat{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding:6px 8px;border-radius:4px;border-bottom:2px solid var(--paper)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr.sel td{background:var(--soft)}
+.chip{display:inline-block;font-size:11.5px;padding:0 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.chip.ok{color:var(--ok);background:var(--ok-bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted);margin:0 0 8px}
+.sw{display:inline-block;width:26px;height:10px;border-radius:3px;vertical-align:middle;margin-right:4px}
+.bump{width:100%;height:auto;display:block}
+.tip{position:absolute;pointer-events:none;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px 8px;font-size:12.5px;box-shadow:0 2px 8px #0003;display:none;z-index:5;white-space:nowrap}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.grp{border:1px solid var(--rule);border-radius:8px;padding:8px 12px;min-width:0}
+.grp h3{margin:0 0 4px;font-size:14px}
+.grp ul{list-style:none;padding:0;margin:0}
+.grp li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:13px;padding:3px 0;border-bottom:1px dashed var(--rule)}
+.grp li:last-child{border-bottom:0}
+.grp .num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+select{font:inherit;font-size:13px;padding:4px 8px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+.method p,.method li{font-size:14px;max-width:70ch}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+footer{margin-top:36px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:12px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="sub" style="margin:0;font-family:var(--mono);letter-spacing:.08em">每周六更新 · 研究工具</div>
+    <h1>美股行业强弱工作台</h1>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <label for="week" class="sub" style="margin:0">查看哪一周</label>
+    <select id="week" aria-label="选择周报日期"></select>
+    <button class="btn" id="theme" type="button">深色</button>
+  </div>
+</header>
+
+<div class="strip" id="strip" role="status">正在读取数据…</div>
+<p class="disc" id="disc"></p>
+
+<section class="panel">
+  <h2>行业 ETF 强弱榜</h2>
+  <p class="sub">综合分＝近 3/6/9/12 个月涨幅加权（近 3 个月占 40%）。格子颜色：越绿涨得越多，越红跌得越多，灰色接近 0；格子里都写着数字。点击一行，下面的走势图会高亮它。</p>
+  <div class="legend"><span><span class="sw" style="background:var(--up)"></span>上涨</span><span><span class="sw" style="background:var(--neutral)"></span>接近 0</span><span><span class="sw" style="background:var(--down)"></span>下跌</span></div>
+  <div class="tscroll"><table id="rank">
+    <thead><tr><th>名次</th><th>行业</th><th>近 1 月</th><th>近 3 月</th><th>近 6 月</th><th>近 12 月</th><th>比标普 500（6 月）</th><th>200 日线</th><th>比上周</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</section>
+
+<section class="panel" style="position:relative">
+  <h2>过去 26 周的排名走势</h2>
+  <p class="sub">越靠上排名越前。彩线是选中的那只，灰线是其他行业。这是按同一算法、用历史价格倒推的排名，不是当时发出的报告。</p>
+  <svg class="bump" id="bump" viewBox="0 0 720 320" role="img" aria-label="各行业 ETF 过去 26 周排名走势"></svg>
+  <div class="tip" id="tip"></div>
+</section>
+
+<section class="panel">
+  <h2>强行业里的强股</h2>
+  <p class="sub">排名前 5 的行业里，同时满足趋势条件、行业强度与业绩加速（收入同比 ≥ 15%、每股收益同比 ≥ 25%）的股票。只是观察名单。</p>
+  <div class="picks" id="picks"></div>
+  <p class="sub" id="others" style="margin-top:10px"></p>
+</section>
+
+<section class="panel method">
+  <h2>方法与结论</h2>
+  <ul>
+    <li><b>行业排名</b>：21 只美股行业 ETF，按近 3、6、9、12 个月的涨幅加权打分（含股息）。</li>
+    <li><b>强股条件</b>：股价在 50/150/200 日均线之上且均线多头排列、200 日线上行、距 52 周高点 25% 以内、比 52 周低点高 30% 以上、相对强度排全池前 30%、所在行业强度前 40%、最新季度收入同比 ≥ 15%、每股收益同比 ≥ 25%。业绩先用美国证监会申报数据（只用当时已提交的），缺了用雅虎补。来源：米勒维尼趋势模板、欧奈尔 CAN SLIM、行业动量研究。</li>
+    <li><b>回测结论</b>：这套规则拿来交易，在标普 500（2007–2026）和标普 400（2012–2026）里都没有跑赢纳指 100；行业 ETF 轮动（每月买最强 3 个）2010 年以后也没跑赢标普 500。所以这里只提供「现在哪里强」的研究线索，不提供买卖时点。</li>
+    <li>数据来源：雅虎财经、美国证监会；每周六日本时间 10:00 自动更新。不构成投资建议。</li>
+  </ul>
+</section>
+
+<footer>本页只有公开市场数据算出的排名和观察名单，不含任何持仓、成交或资金信息。</footer>
+</div>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const tbtn = document.getElementById('theme');
+  function setTheme(t){ root.setAttribute('data-theme', t); tbtn.textContent = t==='dark' ? '浅色' : '深色';
+    try{ localStorage.setItem('theme', t); }catch(e){} }
+  let saved = 'light'; try{ saved = localStorage.getItem('theme') || 'light'; }catch(e){}
+  setTheme(saved);
+  tbtn.addEventListener('click', ()=>{ setTheme(root.getAttribute('data-theme')==='dark'?'light':'dark'); render(); });
+
+  const css = n => getComputedStyle(root).getPropertyValue(n).trim();
+  const pct = x => x==null ? '—' : (x>=0?'+':'')+(x*100).toFixed(0)+'%';
+  function heat(x, cap){
+    if(x==null) return 'transparent';
+    const a = Math.min(Math.abs(x)/cap, 1);
+    return `color-mix(in srgb, ${x>=0?css('--up'):css('--down')} ${Math.round(a*70)}%, ${css('--neutral')})`;
+  }
+  let D = null, selected = null;
+  const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function strip(){
+    const el = document.getElementById('strip');
+    const upd = new Date(D.updated_at);
+    const days = (Date.now() - upd.getTime()) / 86400000;
+    const stale = days > 8;
+    el.className = 'strip' + (stale ? ' stale' : '');
+    el.innerHTML = (stale ? `<span><b>⚠️ 数据已经 ${Math.floor(days)} 天没更新，可能停更了</b></span>` : '') +
+      `<span>数据截至 <b>${esc(D.asof)}</b></span><span>更新于 <b>${upd.toLocaleString('zh-CN',{hour12:false})}</b></span>` +
+      `<span>候选池 <b>${D.meta.universe}</b> 只，满足全部条件 <b>${D.meta.eligible}</b> 只</span>`;
+    document.getElementById('disc').textContent = '⚠️ ' + D.disclaimer;
+  }
+
+  function table(){
+    const tb = document.querySelector('#rank tbody'); tb.innerHTML = '';
+    D.etfs.forEach(r=>{
+      const tr = document.createElement('tr'); tr.tabIndex = 0;
+      if(r.t===selected) tr.className = 'sel';
+      const ch = r.chg==null ? '—' : (r.chg===0 ? '持平' : (r.chg>0 ? '↑'+r.chg : '↓'+(-r.chg)));
+      const cells = [['r1',.15,'近1月'],['r3',.3,'近3月'],['r6',.5,'近6月'],['r12',.8,'近12月']].map(([k,cap,lab])=>
+        `<td class="heat" style="background:${heat(r[k],cap)}" title="${esc(r.name)} ${lab}：${pct(r[k])}">${pct(r[k])}</td>`).join('');
+      tr.innerHTML = `<td class="num">${r.rank}</td><td><b>${esc(r.t)}</b> ${esc(r.name)}</td>${cells}` +
+        `<td class="heat" style="background:${heat(r.vs,.4)}" title="比标普500（近6月）：${pct(r.vs)}">${pct(r.vs)}</td>` +
+        `<td>${r.ma==null?'—':(r.ma?'<span class="chip ok">上方</span>':'<span class="chip">下方</span>')}</td><td class="num">${ch}</td>`;
+      const pick = ()=>{ selected = r.t; table(); bump(); };
+      tr.addEventListener('click', pick);
+      tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
+      tb.appendChild(tr);
+    });
+  }
+
+  const svg = document.getElementById('bump'), tip = document.getElementById('tip');
+  function bump(){
+    const weeks = Object.keys(D.history); const n = weeks.length;
+    const N = D.etfs.length, W=720, H=320, L=34, R=96, T=10, B=28;
+    if(n < 2){ svg.innerHTML = `<text x="20" y="40" style="fill:var(--muted)" font-size="13">历史数据不足</text>`; return; }
+    const x = i => L + (W-L-R)*i/(n-1), y = k => T + (H-T-B)*(k-1)/(N-1);
+    let s = '';
+    [1,5,10,15,N].forEach(k=>{ s += `<line x1="${L}" x2="${W-R}" y1="${y(k)}" y2="${y(k)}" style="stroke:var(--rule)"/>` +
+      `<text x="${L-6}" y="${y(k)+4}" text-anchor="end" font-size="11" style="fill:var(--muted)">${k}</text>`; });
+    [0, Math.floor((n-1)/2), n-1].forEach(i=>{ s += `<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="11" style="fill:var(--muted)">${weeks[i].slice(5)}</text>`; });
+    const order = D.etfs.map(r=>r.t).filter(t=>t!==selected).concat([selected]);
+    order.forEach(t=>{
+      const pts = weeks.map((w,i)=> D.history[w][t] ? `${x(i)},${y(D.history[w][t])}` : null).filter(Boolean).join(' ');
+      const on = t===selected;
+      s += `<polyline points="${pts}" fill="none" style="stroke:${on?'var(--accent)':'var(--line-mute)'}" stroke-width="${on?2.5:1.2}" stroke-linejoin="round"/>`;
+      s += `<polyline points="${pts}" fill="none" stroke="transparent" stroke-width="12" data-t="${esc(t)}" class="hit" style="cursor:pointer"/>`;
+      if(on){ const k = D.history[weeks[n-1]][t];
+        s += `<circle cx="${x(n-1)}" cy="${y(k)}" r="4" style="fill:var(--accent);stroke:var(--paper)" stroke-width="2"/>` +
+             `<text x="${x(n-1)+8}" y="${y(k)+4}" font-size="12" style="fill:var(--ink)">${esc(t)} 第${k}</text>`; }
+    });
+    svg.innerHTML = s;
+    svg.querySelectorAll('.hit').forEach(el=>{
+      el.addEventListener('mousemove', e=>{
+        const t = el.dataset.t, r = D.etfs.find(c=>c.t===t), box = svg.getBoundingClientRect();
+        const i = Math.max(0, Math.min(n-1, Math.round(((e.clientX-box.left)/box.width*W - L)/(W-L-R)*(n-1))));
+        tip.style.display = 'block'; tip.textContent = `${t} ${r?r.name:''}｜${weeks[i]} 第 ${D.history[weeks[i]][t]} 名`;
+        const pr = svg.parentElement.getBoundingClientRect();
+        tip.style.left = (e.clientX-pr.left+12)+'px'; tip.style.top = (e.clientY-pr.top+12)+'px';
+      });
+      el.addEventListener('mouseleave', ()=>{ tip.style.display = 'none'; });
+      el.addEventListener('click', ()=>{ selected = el.dataset.t; table(); bump(); });
+    });
+  }
+
+  function picks(){
+    const pk = document.getElementById('picks'); pk.innerHTML = '';
+    const groups = Object.entries(D.picks);
+    if(!groups.length){ pk.innerHTML = '<p class="empty">本周前 5 名行业里没有同时满足全部条件的股票。</p>'; }
+    groups.forEach(([etf, rows])=>{
+      const name = (D.etfs.find(c=>c.t===etf)||{}).name || '';
+      const g = document.createElement('div'); g.className = 'grp';
+      g.innerHTML = `<h3>${esc(etf)} ${esc(name)}（${rows.length} 只）</h3><ul>` + rows.map(r=>
+        `<li><span><b>${esc(r.t)}</b> ${esc(r.n)}</span><span class="num" title="来源：${esc(r.src)}">强度 ${Math.round(r.rs)}｜收入 ${pct(r.rev)}｜每股收益 ${pct(r.eps)}</span></li>`).join('') + '</ul>';
+      pk.appendChild(g);
+    });
+    document.getElementById('others').textContent = D.others && D.others.length ?
+      '其他满足条件的股票（不在前 5 名行业里）：' + D.others.join('、') : '';
+  }
+
+  function render(){ if(!D) return; strip(); table(); bump(); picks(); }
+
+  async function load(file){
+    try{
+      const r = await fetch(file, {cache:'no-store'});
+      if(!r.ok) throw new Error(r.status);
+      D = await r.json();
+      if(!selected || !D.etfs.find(e=>e.t===selected)) selected = D.etfs[0] && D.etfs[0].t;
+      render();
+    }catch(e){
+      document.getElementById('strip').innerHTML = '<span><b>⚠️ 数据读取失败</b>，请稍后刷新。</span>';
+      document.getElementById('strip').className = 'strip stale';
+    }
+  }
+  const sel = document.getElementById('week');
+  fetch('data/weeks.json', {cache:'no-store'}).then(r=>r.json()).then(ws=>{
+    ws.slice().reverse().forEach((w,i)=>{ const o = document.createElement('option'); o.value = w; o.textContent = i===0 ? w+'（最新）' : w; sel.appendChild(o); });
+  }).catch(()=>{});
+  sel.addEventListener('change', ()=> load(sel.selectedIndex===0 ? 'data/latest.json' : `data/weeks/${sel.value}.json`));
+  load('data/latest.json');
+})();
+</script>
+</body>
+</html>
